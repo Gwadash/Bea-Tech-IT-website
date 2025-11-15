@@ -106,13 +106,13 @@ const Chatbot: React.FC = () => {
         <>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-110"
+                className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-110 z-50"
                 aria-label="Toggle Chat"
             >
                 {isOpen ? <XMarkIcon className="h-8 w-8" /> : <ChatBubbleOvalLeftEllipsisIcon className="h-8 w-8" />}
             </button>
             
-            <div className={`fixed bottom-24 right-6 w-full max-w-sm h-[70vh] max-h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col origin-bottom-right transition-all duration-300 ease-out ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
+            <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm h-[65vh] max-h-[550px] origin-bottom sm:bottom-24 sm:left-auto sm:right-6 sm:translate-x-0 sm:w-full sm:h-[70vh] sm:max-h-[600px] sm:origin-bottom-right bg-white rounded-2xl shadow-2xl flex flex-col transition-all duration-300 ease-out ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
                 <header className="bg-blue-600 text-white p-4 rounded-t-2xl flex justify-between items-center shadow-md flex-shrink-0">
                     <h3 className="text-lg font-bold">Bea-Tech Assistant</h3>
                     <button onClick={() => setIsOpen(false)} className="hover:bg-blue-700 p-1 rounded-full">
