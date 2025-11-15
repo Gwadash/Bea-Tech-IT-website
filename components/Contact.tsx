@@ -57,7 +57,7 @@ const Contact: React.FC = () => {
           </div>
         </div>
         <div className="mt-16 grid lg:grid-cols-2 gap-12">
-            <div className="bg-slate-50 p-8 rounded-lg shadow-sm animate-on-scroll slide-left">
+            <div className="bg-slate-50 p-8 rounded-lg shadow-sm animate-on-scroll slide-up">
                 <h3 className="text-2xl font-bold text-slate-800 mb-6">Contact Information</h3>
                 <div className="space-y-4">
                     <div className="flex items-start">
@@ -105,7 +105,7 @@ const Contact: React.FC = () => {
                     </div>
                 </div>
             </div>
-            <div className="rounded-lg overflow-hidden shadow-lg h-80 lg:h-full animate-on-scroll slide-right">
+            <div className="rounded-lg overflow-hidden shadow-lg h-80 lg:h-full animate-on-scroll slide-up" style={{ transitionDelay: '150ms' }}>
                 <img 
                     src="https://images.unsplash.com/photo-1580894908361-967195033215?q=80&w=2070&auto-format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                     alt="A modern server rack with glowing blue lights representing Bea-Tech's robust infrastructure solutions"
