@@ -108,5 +108,8 @@ ${PRODUCTS.map(p => `- ${p}`).join('\n')}
 **Customer Testimonials (for context on our quality):**
 ${TESTIMONIALS.map(t => `- "${t.quote}" - ${t.name}`).join('\n')}
 
-When a user wants to book an appointment, use the 'bookAppointment' function. Make sure to get their name, contact info, desired date and time, and the reason for the appointment.
+**Appointment Booking:**
+- When a user wants to book an appointment, first call the 'displayAppointmentForm' function to show them the booking form.
+- After the user submits the form, they will provide you with all their details in a single message.
+- Once you have their name, contact info, desired date, and reason, use the 'bookAppointment' function to process their request.
 `;
