@@ -123,3 +123,16 @@ export const CalendarDaysIcon: React.FC<IconProps> = (props) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M-4.5 12h22.5" />
     </svg>
 );
+
+export const BriefcaseIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.07a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25v-4.07a2.25 2.25 0 01.22-1.03l3.25-6.5a2.25 2.25 0 012.1-.82h3.28a2.25 2.25 0 012.1.82l3.25 6.5a2.25 2.25 0 01.22 1.03z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 7.5h-9" />
+    </svg>
+);
+
+export const UsersIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962c.57-1.037 1.25-2.028 2.028-2.962m-7.5 2.962c.57-1.037 1.25-2.028 2.028-2.962M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962c.57-1.037 1.25-2.028 2.028-2.962m-7.5 2.962c.57-1.037 1.25-2.028 2.028-2.962M9.75 6.085a4.5 4.5 0 017.5 0c.57 1.037 1.25 2.028 2.028 2.962M9.75 6.085a4.5 4.5 0 00-7.5 0c-.57 1.037-1.25 2.028-2.028 2.962m11.056 0a4.5 4.5 0 01-7.5 0c-.57-1.037-1.25-2.028-2.028-2.962" />
+    </svg>
+);

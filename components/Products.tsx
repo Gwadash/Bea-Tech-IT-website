@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CheckCircleIcon } from './Icons.tsx';
 import { PRODUCTS } from '../constants.ts';

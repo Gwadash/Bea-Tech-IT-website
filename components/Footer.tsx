@@ -1,9 +1,38 @@
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Logo from './Logo.tsx';
 import { NAV_LINKS, CONTACT_DETAILS } from '../constants.ts';
 
+const useOnScreen = (options: IntersectionObserverInit) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.unobserve(entry.target);
+      }
+    }, options);
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, [ref, options]);
+
+  return [ref, isVisible] as const;
+};
+
+
 const Footer: React.FC = () => {
+  const [footerRef, isVisible] = useOnScreen({ threshold: 0.1 });
+
   const handleSmoothScroll = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     const href = event.currentTarget.getAttribute('href');
@@ -16,7 +45,7 @@ const Footer: React.FC = () => {
   };
   
   return (
-    <footer className="bg-slate-800 text-slate-300">
+    <footer ref={footerRef} className={`bg-slate-800 text-slate-300 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid md:grid-cols-3 gap-8">
             <div className="space-y-4">

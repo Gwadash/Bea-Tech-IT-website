@@ -1,7 +1,13 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Hero: React.FC = () => {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleSmoothScroll = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     const href = event.currentTarget.getAttribute('href');
@@ -19,13 +25,13 @@ const Hero: React.FC = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="min-h-[60vh] md:min-h-[70vh] flex items-center justify-center text-center">
           <div className="max-w-3xl">
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter">
+            <h1 className={`text-4xl sm:text-5xl md:text-7xl font-black text-white tracking-tighter transition-all duration-500 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               Your <span className="text-blue-400">Next Level</span> IT Partner
             </h1>
-            <p className="mt-6 text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
+            <p className={`mt-6 text-lg md:text-xl text-slate-300 max-w-2xl mx-auto transition-all duration-500 delay-200 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               We supply the latest hardware, software, and accessories. Our expert tech team is here to fix, maintain, and elevate your computer and network performance.
             </p>
-            <div className="mt-8 flex justify-center gap-4">
+            <div className={`mt-8 flex justify-center gap-4 transition-all duration-500 delay-300 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <a
                 href="#services"
                 onClick={handleSmoothScroll}

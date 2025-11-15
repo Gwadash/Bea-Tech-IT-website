@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CONTACT_DETAILS } from '../constants.ts';
 import { MapPinIcon, PhoneIcon, EnvelopeIcon, GlobeAltIcon, ClockIcon, StarIcon, WomanIcon, PlusCircleIcon, BuildingStorefrontIcon } from './Icons.tsx';
 
@@ -8,11 +8,39 @@ const attributeIcons: { [key: string]: React.FC<React.SVGProps<SVGSVGElement>> }
     "In-store shopping": BuildingStorefrontIcon,
 };
 
+const useOnScreen = (options: IntersectionObserverInit) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.unobserve(entry.target);
+      }
+    }, options);
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, [ref, options]);
+
+  return [ref, isVisible] as const;
+};
+
 const Contact: React.FC = () => {
+  const [sectionRef, isVisible] = useOnScreen({ threshold: 0.2 });
+  
   return (
     <section id="contact" className="py-20 bg-white scroll-mt-20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto">
+      <div ref={sectionRef} className={`container mx-auto px-4 sm:px-6 lg:px-8 ${isVisible ? 'is-visible' : ''}`}>
+        <div className="text-center max-w-3xl mx-auto animate-on-scroll slide-up">
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
             Get In Touch
           </h2>
@@ -29,7 +57,7 @@ const Contact: React.FC = () => {
           </div>
         </div>
         <div className="mt-16 grid lg:grid-cols-2 gap-12">
-            <div className="bg-slate-50 p-8 rounded-lg shadow-sm">
+            <div className="bg-slate-50 p-8 rounded-lg shadow-sm animate-on-scroll slide-left">
                 <h3 className="text-2xl font-bold text-slate-800 mb-6">Contact Information</h3>
                 <div className="space-y-4">
                     <div className="flex items-start">
@@ -77,9 +105,9 @@ const Contact: React.FC = () => {
                     </div>
                 </div>
             </div>
-            <div className="rounded-lg overflow-hidden shadow-lg h-80 lg:h-full">
+            <div className="rounded-lg overflow-hidden shadow-lg h-80 lg:h-full animate-on-scroll slide-right">
                 <img 
-                    src="https://images.unsplash.com/photo-1580894908361-967195033215?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                    src="https://images.unsplash.com/photo-1580894908361-967195033215?q=80&w=2070&auto-format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                     alt="A modern server rack with glowing blue lights representing Bea-Tech's robust infrastructure solutions"
                     className="w-full h-full object-cover"
                 />

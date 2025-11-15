@@ -32,14 +32,14 @@ export const SERVICES = [
 ];
 
 export const PRODUCTS = [
-    "Pre-Built Desktops",
-    "Upgrade Kits",
-    "Desktop Components",
-    "Laptops",
-    "Software",
-    "Peripherals",
-    "Cables and Adapters",
-    "And Much More..."
+    'Pre-Built Desktops',
+    'Upgrade Kits',
+    'Desktop Components',
+    'Laptops',
+    'Software',
+    'Peripherals',
+    'Cables and Adapters',
+    'And Much More...',
 ];
 
 
