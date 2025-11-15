@@ -3,11 +3,12 @@ import React from 'react';
 import Header from './components/Header.tsx';
 import Hero from './components/Hero.tsx';
 import Services from './components/Services.tsx';
-import FeaturedProduct from './components/FeaturedProduct.tsx';
+import Products from './components/Products.tsx';
 import About from './components/About.tsx';
 import Testimonials from './components/Testimonials.tsx';
 import Contact from './components/Contact.tsx';
 import Footer from './components/Footer.tsx';
+import Chatbot from './components/Chatbot.tsx';
 
 const App: React.FC = () => {
   return (
@@ -16,12 +17,13 @@ const App: React.FC = () => {
       <main>
         <Hero />
         <Services />
-        <FeaturedProduct />
+        <Products />
         <About />
         <Testimonials />
         <Contact />
       </main>
       <Footer />
+      <Chatbot />
     </div>
   );
 };

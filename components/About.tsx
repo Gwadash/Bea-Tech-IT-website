@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 const About: React.FC = () => {
@@ -22,7 +21,7 @@ const About: React.FC = () => {
                     Passionate About Technology, Dedicated To You
                 </h2>
                 <p className="mt-6 text-xl text-slate-600">
-                    At Bea-Tech IT, we are more than just a computer company. We are a team of dedicated technology enthusiasts committed to providing exceptional service and reliable solutions. Our mission is to fix and better your computer and network, ensuring you have the tools to succeed in a digital world. We pride ourselves on our expertise, friendly support, and building lasting relationships with our clients in Vanderbijlpark and beyond.
+                    Our founder’s 10 years in the IT industry inspired the decision to launch this business, driven by a mission to deliver unparalleled service and client satisfaction in the Vaal Triangle. At Bea-Tech IT, we are more than just a computer company. We are a team of dedicated technology enthusiasts committed to providing exceptional service and reliable solutions. Our mission is to fix and better your computer and network, ensuring you have the tools to succeed in a digital world. We pride ourselves on our expertise, friendly support, and building lasting relationships with our clients in Vanderbijlpark and beyond.
                 </p>
                 <div className="mt-8">
                     <a href="#contact" onClick={handleSmoothScroll} className="inline-block bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 duration-300">
