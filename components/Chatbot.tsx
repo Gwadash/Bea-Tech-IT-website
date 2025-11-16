@@ -44,24 +44,34 @@ const Chatbot: React.FC = () => {
     const handleSendMessage = async () => {
         if (!userInput.trim() || isLoading) return;
 
-        const userMessage: Content = { role: 'user', parts: [{ text: userInput }] };
-        const currentHistory = [...history, userMessage];
-        
-        setHistory(currentHistory);
+        const text = userInput;
+        const userMessage: Content = { role: 'user', parts: [{ text }] };
+
+        // Optimistically update the UI with the user's message.
+        setHistory(prev => [...prev, userMessage]);
         setUserInput('');
         setIsLoading(true);
         setError(null);
+
+        // The history for the API call must include the new user message.
+        const historyForAPI = [...history, userMessage];
 
         try {
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ history: currentHistory }),
+                body: JSON.stringify({ history: historyForAPI }),
             });
 
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || 'The server returned an error.');
+                let errorMsg = `Server error: ${res.status}`;
+                try {
+                    const errorData = await res.json();
+                    errorMsg = errorData.error || errorData.details || errorMsg;
+                } catch (jsonError) {
+                    errorMsg = `Server error: ${res.status} ${res.statusText}`;
+                }
+                throw new Error(errorMsg);
             }
             
             const data = await res.json() as { content: Content };
@@ -72,42 +82,25 @@ const Chatbot: React.FC = () => {
             if (functionCallPart?.functionCall) {
                 const fc = functionCallPart.functionCall;
                 
-                // This is a "mock" execution of the function.
-                const result = {
-                    status: 'SUCCESS',
-                    message: `Thanks, ${fc.args.name}! Your appointment for a "${fc.args.reason}" on ${fc.args.date} has been requested. We will send a confirmation to ${fc.args.contact} shortly.`
+                // Fix: Correctly access 'reason' from fc.args
+                const confirmationText = `Thanks, ${fc.args.name}! Your appointment for a "${fc.args.reason}" on ${fc.args.date || 'a suitable date'}${fc.args.time ? ` around ${fc.args.time}`: ''} has been requested. We will send a confirmation to ${fc.args.contact} shortly.`;
+                
+                const confirmationMessage: Content = {
+                    role: 'model',
+                    parts: [{ text: confirmationText }]
                 };
                 
-                // Send the result back to the model for a follow-up.
-                const functionResponse: Content = {
-                    role: 'user', // In the Gemini API, function responses are sent with the 'user' role.
-                    parts: [{
-                        functionResponse: { name: fc.name, response: result }
-                    }]
-                };
-                const historyForFollowUp = [...currentHistory, modelResponseContent, functionResponse];
-
-                const followUpRes = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ history: historyForFollowUp }),
-                });
-                
-                if (!followUpRes.ok) throw new Error('The server returned an error on follow-up.');
-                
-                const followUpData = await followUpRes.json() as { content: Content };
-                // Add the final response from the model to the history for display.
-                setHistory(prev => [...prev, followUpData.content]);
-
+                // Add the model's confirmation message to the history.
+                setHistory(prev => [...prev, confirmationMessage]);
             } else {
-                // If it's a regular text response, just display it.
+                // Add the model's regular text response to the history.
                 setHistory(prev => [...prev, modelResponseContent]);
             }
 
         } catch (e) {
             console.error("Error sending message:", e);
             const message = e instanceof Error ? e.message : "An unknown error occurred.";
-            setError("Sorry, I encountered an error. " + message);
+            setError(`Sorry, I encountered an error. Please try again. (${message})`);
         } finally {
             setIsLoading(false);
         }
