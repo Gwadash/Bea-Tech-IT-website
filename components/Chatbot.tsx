@@ -1,27 +1,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat, FunctionDeclaration, Type, GenerateContentResponse, Part } from "@google/genai";
-import { COMPANY_INFO_FOR_BOT } from '../constants.ts';
 import { ChatBubbleOvalLeftEllipsisIcon, XMarkIcon, PaperAirplaneIcon, UserIcon } from './Icons.tsx';
 
-// The function declaration for the tool the model can use.
-const bookAppointmentFunctionDeclaration: FunctionDeclaration = {
-  name: 'bookAppointment',
-  parameters: {
-    type: Type.OBJECT,
-    description: 'Books a service or consultation appointment for a customer.',
-    properties: {
-      name: { type: Type.STRING, description: 'The full name of the customer.' },
-      contact: { type: Type.STRING, description: 'The customer\'s phone number or email address.' },
-      date: { type: Type.STRING, description: 'The requested date for the appointment, e.g., "tomorrow" or "2024-08-15".' },
-      time: { type: Type.STRING, description: 'The requested time for the appointment, e.g., "morning" or "2 PM".' },
-      reason: { type: Type.STRING, description: 'A brief description of the service needed, e.g., "laptop repair" or "network setup consultation".' },
-    },
-    required: ['name', 'contact', 'date', 'reason'],
-  },
-};
+// Define types to represent the conversation structure for the Gemini API
+type Role = 'user' | 'model';
+interface TextPart { text: string; }
+interface FunctionCallPart { functionCall: { name: string; args: any; }; }
+interface FunctionResponsePart { functionResponse: { name: string; response: any; }; }
+type Part = TextPart | FunctionCallPart | FunctionResponsePart;
 
-interface Message {
+interface Content {
+    role: Role;
+    parts: Part[];
+}
+
+interface DisplayMessage {
     id: number;
     role: 'user' | 'model';
     text: string;
@@ -29,100 +22,114 @@ interface Message {
 
 const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [history, setHistory] = useState<Content[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [userInput, setUserInput] = useState('');
-    const [chat, setChat] = useState<Chat | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Effect to initialize the chatbot when it's opened.
+    // Effect to initialize the chatbot with a welcome message
     useEffect(() => {
-        if (isOpen && !chat) {
-            const apiKey = process.env.API_KEY;
-            if (!apiKey) {
-                console.error("API key not found. Please set the API_KEY environment variable.");
-                setMessages([{ id: Date.now(), role: 'model', text: "Sorry, the chat service is unavailable. The API key has not been configured correctly for this deployment." }]);
-                return;
-            }
-
-            try {
-                const ai = new GoogleGenAI({ apiKey });
-                const chatInstance = ai.chats.create({
-                    model: 'gemini-2.5-flash',
-                    config: {
-                        systemInstruction: COMPANY_INFO_FOR_BOT,
-                        tools: [{ functionDeclarations: [bookAppointmentFunctionDeclaration] }],
-                    },
-                });
-                setChat(chatInstance);
-                setMessages([{ id: Date.now(), role: 'model', text: 'Hello! How can I help you today? Feel free to ask any questions about Bea-Tech IT or book an appointment.' }]);
-            } catch (error) {
-                console.error("Failed to initialize Gemini:", error);
-                setMessages([{ id: Date.now(), role: 'model', text: 'Sorry, the chat service is currently unavailable. This may be due to a configuration issue.' }]);
-            }
+        if (isOpen && history.length === 0) {
+            setHistory([{ role: 'model', parts: [{ text: 'Hello! How can I help you today? Feel free to ask any questions about Bea-Tech IT or book an appointment.' }] }]);
         }
-    }, [isOpen, chat]);
+    }, [isOpen, history.length]);
 
     // Effect to auto-scroll to the latest message.
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isLoading]);
+    }, [history, isLoading]);
 
-    // Handles sending a message from the user to the Gemini API.
+    // Handles sending a message by calling our secure serverless function
     const handleSendMessage = async () => {
-        if (!userInput.trim() || !chat || isLoading) return;
+        if (!userInput.trim() || isLoading) return;
 
-        const userMessage: Message = { id: Date.now(), role: 'user', text: userInput };
-        setMessages(prev => [...prev, userMessage]);
+        const userMessage: Content = { role: 'user', parts: [{ text: userInput }] };
+        const currentHistory = [...history, userMessage];
+        
+        setHistory(currentHistory);
         const currentInput = userInput;
         setUserInput('');
         setIsLoading(true);
+        setError(null);
 
         try {
-            const response: GenerateContentResponse = await chat.sendMessage({ message: currentInput });
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ history: currentHistory }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'The server returned an error.');
+            }
             
-            // Check if the model wants to call the 'bookAppointment' function.
-            if (response.functionCalls && response.functionCalls.length > 0) {
-                const fc = response.functionCalls[0];
+            const data = await res.json() as { content: Content };
+            const modelResponseContent = data.content;
+
+            const functionCallPart = modelResponseContent.parts.find(part => 'functionCall' in part) as FunctionCallPart | undefined;
+
+            if (functionCallPart?.functionCall) {
+                const fc = functionCallPart.functionCall;
                 
                 // This is a "mock" execution of the function.
-                // In a real app, you'd call your booking system's API here.
                 const result = {
                     status: 'SUCCESS',
                     message: `Thanks, ${fc.args.name}! Your appointment for a "${fc.args.reason}" on ${fc.args.date} has been requested. We will send a confirmation to ${fc.args.contact} shortly.`
                 };
                 
                 // 1. Instantly show the confirmation message to the user for a responsive feel.
-                const confirmationMessage: Message = { id: Date.now() + 1, role: 'model', text: result.message };
-                setMessages(prev => [...prev, confirmationMessage]);
+                const confirmationMessage: Content = { role: 'model', parts: [{ text: result.message }] };
+                setHistory(prev => [...prev, confirmationMessage]);
 
-                // 2. Send the result of the function call back to the model.
-                const functionResponsePart: Part = {
-                    functionResponse: {
-                        name: fc.name,
-                        response: result,
-                    }
+                // 2. Send the result back to the model for a follow-up.
+                const functionResponse: Content = {
+                    role: 'user', // In the Gemini API, function responses are sent with the 'user' role.
+                    parts: [{
+                        functionResponse: { name: fc.name, response: result }
+                    }]
                 };
-                const modelResponseAfterTool = await chat.sendMessage({ message: [functionResponsePart] });
+                const historyForFollowUp = [...currentHistory, modelResponseContent, functionResponse];
 
-                // Display the model's follow-up message.
-                if (modelResponseAfterTool.text) {
-                    const followUpMessage: Message = { id: Date.now() + 2, role: 'model', text: modelResponseAfterTool.text };
-                    setMessages(prev => [...prev, followUpMessage]);
+                const followUpRes = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ history: historyForFollowUp }),
+                });
+                
+                if (!followUpRes.ok) throw new Error('The server returned an error on follow-up.');
+                
+                const followUpData = await followUpRes.json() as { content: Content };
+                const followUpTextPart = followUpData.content.parts.find(part => 'text' in part) as TextPart | undefined;
+
+                if (followUpTextPart?.text) {
+                     setHistory(prev => [...prev, {role: 'model', parts: [{text: followUpTextPart.text}]}]);
                 }
+
             } else {
                 // If it's a regular text response, just display it.
-                const modelMessage: Message = { id: Date.now() + 1, role: 'model', text: response.text };
-                setMessages(prev => [...prev, modelMessage]);
+                setHistory(prev => [...prev, modelResponseContent]);
             }
-        } catch (error) {
-            console.error("Error sending message to Gemini:", error);
-            const errorMessage: Message = { id: Date.now() + 1, role: 'model', text: "Sorry, I encountered an error. Please try again." };
-            setMessages(prev => [...prev, errorMessage]);
+
+        } catch (e) {
+            console.error("Error sending message:", e);
+            const message = e instanceof Error ? e.message : "An unknown error occurred.";
+            setError("Sorry, I encountered an error. " + message);
         } finally {
             setIsLoading(false);
         }
     };
+    
+    // Convert history into a flat list of messages for rendering
+    const displayMessages: DisplayMessage[] = history.map((content, index) => {
+        const textPart = content.parts.find(part => 'text' in part) as TextPart | undefined;
+        return {
+            id: index,
+            role: content.role,
+            text: textPart?.text || '',
+        };
+    }).filter(msg => msg.text); // Only render messages that have text
 
     return (
         <>
@@ -161,7 +168,7 @@ const Chatbot: React.FC = () => {
                     {/* Messages */}
                     <div className="flex-1 p-4 overflow-y-auto bg-slate-100">
                         <div className="space-y-4">
-                            {messages.map((msg) => (
+                            {displayMessages.map((msg) => (
                                 <div key={msg.id} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     {msg.role === 'model' && (
                                         <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
@@ -188,6 +195,11 @@ const Chatbot: React.FC = () => {
                                     </div>
                                 </div>
                             )}
+                            {error && (
+                                <div className="p-3 rounded-lg bg-red-100 text-red-700 text-sm">
+                                    {error}
+                                </div>
+                            )}
                         </div>
                         <div ref={messagesEndRef} />
                     </div>
@@ -201,12 +213,12 @@ const Chatbot: React.FC = () => {
                                 onChange={(e) => setUserInput(e.target.value)}
                                 placeholder="Type your message..."
                                 className="flex-1 w-full px-4 py-2 text-sm text-slate-800 bg-slate-100 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                                disabled={isLoading || !chat}
+                                disabled={isLoading}
                             />
                             <button
                                 type="submit"
                                 className="p-3 bg-blue-600 text-white rounded-full disabled:bg-slate-300 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
-                                disabled={isLoading || !userInput.trim() || !chat}
+                                disabled={isLoading || !userInput.trim()}
                                 aria-label="Send message"
                             >
                                 <PaperAirplaneIcon className="h-5 w-5" />
