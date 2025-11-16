@@ -48,7 +48,6 @@ const Chatbot: React.FC = () => {
         const currentHistory = [...history, userMessage];
         
         setHistory(currentHistory);
-        const currentInput = userInput;
         setUserInput('');
         setIsLoading(true);
         setError(null);
@@ -79,11 +78,7 @@ const Chatbot: React.FC = () => {
                     message: `Thanks, ${fc.args.name}! Your appointment for a "${fc.args.reason}" on ${fc.args.date} has been requested. We will send a confirmation to ${fc.args.contact} shortly.`
                 };
                 
-                // 1. Instantly show the confirmation message to the user for a responsive feel.
-                const confirmationMessage: Content = { role: 'model', parts: [{ text: result.message }] };
-                setHistory(prev => [...prev, confirmationMessage]);
-
-                // 2. Send the result back to the model for a follow-up.
+                // Send the result back to the model for a follow-up.
                 const functionResponse: Content = {
                     role: 'user', // In the Gemini API, function responses are sent with the 'user' role.
                     parts: [{
@@ -101,11 +96,8 @@ const Chatbot: React.FC = () => {
                 if (!followUpRes.ok) throw new Error('The server returned an error on follow-up.');
                 
                 const followUpData = await followUpRes.json() as { content: Content };
-                const followUpTextPart = followUpData.content.parts.find(part => 'text' in part) as TextPart | undefined;
-
-                if (followUpTextPart?.text) {
-                     setHistory(prev => [...prev, {role: 'model', parts: [{text: followUpTextPart.text}]}]);
-                }
+                // Add the final response from the model to the history for display.
+                setHistory(prev => [...prev, followUpData.content]);
 
             } else {
                 // If it's a regular text response, just display it.
@@ -122,14 +114,17 @@ const Chatbot: React.FC = () => {
     };
     
     // Convert history into a flat list of messages for rendering
-    const displayMessages: DisplayMessage[] = history.map((content, index) => {
-        const textPart = content.parts.find(part => 'text' in part) as TextPart | undefined;
-        return {
-            id: index,
-            role: content.role,
-            text: textPart?.text || '',
-        };
-    }).filter(msg => msg.text); // Only render messages that have text
+    const displayMessages: DisplayMessage[] = history.flatMap((content, index) => {
+        const textParts = content.parts.filter(part => 'text' in part) as TextPart[];
+        if (textParts.length > 0) {
+            return [{
+                id: index,
+                role: content.role,
+                text: textParts.map(p => p.text).join('<br />'),
+            }];
+        }
+        return [];
+    });
 
     return (
         <>
@@ -214,6 +209,12 @@ const Chatbot: React.FC = () => {
                                 placeholder="Type your message..."
                                 className="flex-1 w-full px-4 py-2 text-sm text-slate-800 bg-slate-100 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                                 disabled={isLoading}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSendMessage();
+                                    }
+                                }}
                             />
                             <button
                                 type="submit"
