@@ -1,4 +1,3 @@
-import { FunctionDeclaration, Type } from "@google/genai";
 import { WrenchScrewdriverIcon, ComputerDesktopIcon, ServerStackIcon, VideoCameraIcon } from './components/Icons.tsx';
 
 export const NAV_LINKS = [
@@ -110,19 +109,3 @@ ${TESTIMONIALS.map(t => `- "${t.quote}" - ${t.name}`).join('\n')}
 
 When a user wants to book an appointment, use the 'bookAppointment' function. Make sure to get their name, contact info, desired date and time, and the reason for the appointment.
 `;
-
-export const bookAppointmentFunctionDeclaration: FunctionDeclaration = {
-    name: 'bookAppointment',
-    parameters: {
-        type: Type.OBJECT,
-        description: 'Books a service or consultation appointment for a customer.',
-        properties: {
-            name: { type: Type.STRING, description: 'The full name of the customer.' },
-            contact: { type: Type.STRING, description: 'The customer\'s phone number or email address.' },
-            date: { type: Type.STRING, description: 'The requested date for the appointment, e.g., "tomorrow" or "2024-08-15".' },
-            time: { type: Type.STRING, description: 'The requested time for the appointment, e.g., "morning" or "2 PM".' },
-            reason: { type: Type.STRING, description: 'A brief description of the service needed, e.g., "laptop repair" or "network setup consultation".' },
-        },
-        required: ['name', 'contact', 'date', 'reason'],
-    },
-};

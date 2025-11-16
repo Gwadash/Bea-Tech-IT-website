@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI } from "@google/genai";
 import { ChatBubbleOvalLeftEllipsisIcon, XMarkIcon, PaperAirplaneIcon, UserIcon } from './Icons.tsx';
-import { COMPANY_INFO_FOR_BOT, bookAppointmentFunctionDeclaration } from '../constants.ts';
+import { COMPANY_INFO_FOR_BOT } from '../constants.ts';
 
 // Define types to represent the conversation structure for the Gemini API
 type Role = 'user' | 'model';
@@ -49,39 +48,43 @@ const Chatbot: React.FC = () => {
         const userMessage: Content = { role: 'user', parts: [{ text }] };
         const newHistory = [...history, userMessage];
 
-        setHistory(newHistory);
+        setHistory(newHistory); // Update history with user's message
         setUserInput('');
         setIsLoading(true);
         setError(null);
 
         try {
-            if (!process.env.API_KEY) {
-                throw new Error("API key is not configured. Please set the API_KEY environment variable.");
-            }
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-            const result = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: newHistory,
-                config: {
-                    systemInstruction: COMPANY_INFO_FOR_BOT,
-                    tools: [{ functionDeclarations: [bookAppointmentFunctionDeclaration] }],
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({ history: newHistory }),
             });
 
-            const modelResponseParts: Part[] = result.candidates?.[0]?.content?.parts || [];
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.details || errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const { response: modelApiResponse } = await response.json();
             
+            // Type assertion for the response structure.
+            const result = modelApiResponse as { candidates?: { content: { parts: Part[] } }[] };
+
+            const modelResponseParts = result.candidates?.[0]?.content?.parts || [];
+
             let modelMessage: Content;
             const functionCallPart = modelResponseParts.find(part => 'functionCall' in part) as FunctionCallPart | undefined;
-            
-            if (functionCallPart && functionCallPart.functionCall) {
+
+            if (functionCallPart?.functionCall) {
                 const fc = functionCallPart.functionCall;
-                 const confirmationText = `Thanks, ${fc.args.name || 'you'}! Your appointment for a "${fc.args.reason || 'your issue'}" on ${fc.args.date || 'a suitable date'}${fc.args.time ? ` around ${fc.args.time}`: ''} has been requested. We will send a confirmation to ${fc.args.contact} shortly.`;
+                const confirmationText = `Thanks, ${fc.args.name || 'you'}! Your appointment for "${fc.args.reason || 'your issue'}" on ${fc.args.date || 'a suitable date'}${fc.args.time ? ` around ${fc.args.time}`: ''} has been requested. We will send a confirmation to ${fc.args.contact} shortly.`;
                 modelMessage = { role: 'model', parts: [{ text: confirmationText }] };
             } else {
                 const textPart = modelResponseParts.find(part => 'text' in part) as TextPart | undefined;
-                const text = textPart?.text || "Sorry, I'm having trouble responding right now.";
-                modelMessage = { role: 'model', parts: [{ text }]};
+                const text = textPart?.text || "Sorry, I couldn't get a response. Please try again.";
+                modelMessage = { role: 'model', parts: [{ text }] };
             }
 
             setHistory(prev => [...prev, modelMessage]);
@@ -89,7 +92,9 @@ const Chatbot: React.FC = () => {
         } catch (e) {
             console.error("Error sending message:", e);
             const message = e instanceof Error ? e.message : "An unknown error occurred.";
-            setError(`Sorry, I encountered an error. Please try again. (${message})`);
+            setError(`Sorry, I encountered an error: ${message}`);
+            // Revert optimistic update on error by removing the last user message
+            setHistory(history);
         } finally {
             setIsLoading(false);
         }
