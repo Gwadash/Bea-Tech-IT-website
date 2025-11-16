@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, FunctionDeclaration, Type, Content } from "@google/genai";
 
 // The contents of `constants.ts` are copied here to make the serverless function self-contained.
