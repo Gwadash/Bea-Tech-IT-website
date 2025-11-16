@@ -1,4 +1,4 @@
-import { GoogleGenAI, FunctionDeclaration, Type, Content } from "@google/genai";
+import { GoogleGenAI, FunctionDeclaration, Type, Content, GenerateContentResponse } from "@google/genai";
 
 // The contents of `constants.ts` are copied here to make the serverless function self-contained.
 // This is a common pattern as Vercel builds API routes as isolated units.
@@ -71,7 +71,7 @@ export default async function handler(req: Request) {
         const ai = new GoogleGenAI({ apiKey });
         const { history } = await req.json() as { history: Content[] };
 
-        const response = await ai.models.generateContent({
+        const result = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: history,
             config: {
@@ -79,14 +79,10 @@ export default async function handler(req: Request) {
                 tools: [{ functionDeclarations: [bookAppointmentFunctionDeclaration] }],
             },
         });
-
-        if (!response.candidates || response.candidates.length === 0) {
-            throw new Error("No response from model.");
-        }
         
-        return new Response(JSON.stringify({ content: response.candidates[0].content }), {
-            headers: { 'Content-Type': 'application/json' },
+        return new Response(JSON.stringify({ response: result }), {
             status: 200,
+            headers: { 'Content-Type': 'application/json' },
         });
 
     } catch (error) {

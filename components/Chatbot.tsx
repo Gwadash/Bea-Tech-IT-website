@@ -1,6 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
+import { GoogleGenAI } from "@google/genai";
 import { ChatBubbleOvalLeftEllipsisIcon, XMarkIcon, PaperAirplaneIcon, UserIcon } from './Icons.tsx';
+import { COMPANY_INFO_FOR_BOT, bookAppointmentFunctionDeclaration } from '../constants.ts';
 
 // Define types to represent the conversation structure for the Gemini API
 type Role = 'user' | 'model';
@@ -40,62 +41,50 @@ const Chatbot: React.FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [history, isLoading]);
 
-    // Handles sending a message by calling our secure serverless function
+    // Handles sending a message and processing the response
     const handleSendMessage = async () => {
         if (!userInput.trim() || isLoading) return;
 
         const text = userInput;
         const userMessage: Content = { role: 'user', parts: [{ text }] };
+        const newHistory = [...history, userMessage];
 
-        // Optimistically update the UI with the user's message.
-        setHistory(prev => [...prev, userMessage]);
+        setHistory(newHistory);
         setUserInput('');
         setIsLoading(true);
         setError(null);
 
-        // The history for the API call must include the new user message.
-        const historyForAPI = [...history, userMessage];
-
         try {
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ history: historyForAPI }),
+            if (!process.env.API_KEY) {
+                throw new Error("API key is not configured. Please set the API_KEY environment variable.");
+            }
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+            const result = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: newHistory,
+                config: {
+                    systemInstruction: COMPANY_INFO_FOR_BOT,
+                    tools: [{ functionDeclarations: [bookAppointmentFunctionDeclaration] }],
+                },
             });
 
-            if (!res.ok) {
-                let errorMsg = `Server error: ${res.status}`;
-                try {
-                    const errorData = await res.json();
-                    errorMsg = errorData.error || errorData.details || errorMsg;
-                } catch (jsonError) {
-                    errorMsg = `Server error: ${res.status} ${res.statusText}`;
-                }
-                throw new Error(errorMsg);
-            }
+            const modelResponseParts: Part[] = result.candidates?.[0]?.content?.parts || [];
             
-            const data = await res.json() as { content: Content };
-            const modelResponseContent = data.content;
-
-            const functionCallPart = modelResponseContent.parts.find(part => 'functionCall' in part) as FunctionCallPart | undefined;
-
-            if (functionCallPart?.functionCall) {
+            let modelMessage: Content;
+            const functionCallPart = modelResponseParts.find(part => 'functionCall' in part) as FunctionCallPart | undefined;
+            
+            if (functionCallPart && functionCallPart.functionCall) {
                 const fc = functionCallPart.functionCall;
-                
-                // Fix: Correctly access 'reason' from fc.args
-                const confirmationText = `Thanks, ${fc.args.name}! Your appointment for a "${fc.args.reason}" on ${fc.args.date || 'a suitable date'}${fc.args.time ? ` around ${fc.args.time}`: ''} has been requested. We will send a confirmation to ${fc.args.contact} shortly.`;
-                
-                const confirmationMessage: Content = {
-                    role: 'model',
-                    parts: [{ text: confirmationText }]
-                };
-                
-                // Add the model's confirmation message to the history.
-                setHistory(prev => [...prev, confirmationMessage]);
+                 const confirmationText = `Thanks, ${fc.args.name || 'you'}! Your appointment for a "${fc.args.reason || 'your issue'}" on ${fc.args.date || 'a suitable date'}${fc.args.time ? ` around ${fc.args.time}`: ''} has been requested. We will send a confirmation to ${fc.args.contact} shortly.`;
+                modelMessage = { role: 'model', parts: [{ text: confirmationText }] };
             } else {
-                // Add the model's regular text response to the history.
-                setHistory(prev => [...prev, modelResponseContent]);
+                const textPart = modelResponseParts.find(part => 'text' in part) as TextPart | undefined;
+                const text = textPart?.text || "Sorry, I'm having trouble responding right now.";
+                modelMessage = { role: 'model', parts: [{ text }]};
             }
+
+            setHistory(prev => [...prev, modelMessage]);
 
         } catch (e) {
             console.error("Error sending message:", e);
@@ -110,10 +99,11 @@ const Chatbot: React.FC = () => {
     const displayMessages: DisplayMessage[] = history.flatMap((content, index) => {
         const textParts = content.parts.filter(part => 'text' in part) as TextPart[];
         if (textParts.length > 0) {
+            const combinedText = textParts.map(p => p.text).join('<br />');
             return [{
                 id: index,
                 role: content.role,
-                text: textParts.map(p => p.text).join('<br />'),
+                text: combinedText,
             }];
         }
         return [];
